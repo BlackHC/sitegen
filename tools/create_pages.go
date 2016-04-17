@@ -3,7 +3,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"path"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -39,6 +41,28 @@ func errPanic(err error) {
 	}
 }
 
+func linkContent(s *data.Sitemap, postPath string, content string) string {
+	changedUrls := map[string]string{}
+
+	urlRegExp, err := regexp.Compile(`(href|src)=\"(.*?)\"`)
+	errPanic(err)
+
+	urls := urlRegExp.FindAllStringSubmatch(content, -1)
+	for _, matches := range urls {
+		url := matches[2]
+		// TODO check relative paths using the "current" directory
+		targetUrl := s.MapUrl(url)
+		if url != targetUrl {
+			changedUrls[url] = targetUrl
+			content = strings.Replace(content, matches[0], strings.Replace(matches[0], url, targetUrl, -1), -1)
+		}
+	}
+	// if len(changedUrls) > 0 {
+	// 	fmt.Printf("%v has been changed during linking:\n\t%+v\n\n", postPath, changedUrls)
+	// }
+	return content
+}
+
 func main() {
 	flag.Parse()
 
@@ -50,9 +74,11 @@ func main() {
 		postContent, err := postMetadata.Content()
 		errPanic(err)
 
+		linkedContent := linkContent(sitemap, postPath, postContent)
+
 		postTemplateContext := PostTemplateContext{
 			Title:   postMetadata.Title,
-			Content: postContent, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
+			Content: linkedContent, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
 			Navigation: NavigationContext{NextPost: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
 				PreviousPost: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
 
@@ -67,11 +93,13 @@ func main() {
 		// Run the template
 		// Write output to _page.html
 		outputPath := path.Join("http", postMetadata.Url)
-		println(outputPath)
+
 		pageFile, err := util.CreateOutputFile(outputPath)
 		errPanic(err)
 
 		err = postTemplate.Execute(pageFile, postTemplateContext)
 		errPanic(err)
+
+		fmt.Printf("%s created\n", outputPath)
 	}
 }

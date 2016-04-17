@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,14 +23,10 @@ func mdToContentHtml(path string) string {
 	return contentHtmlPath
 }
 
-func main() {
-	// Iterate through all md files and determine the output file.
+func enumeratePosts(sitemap *data.Sitemap) {
 	postsMetadata := map[string]interface{}{}
 	err := util.ImportJson("raw_posts_metadata.json", &postsMetadata)
 	errPanic(err)
-
-	sitemap := data.NewSitemap()
-
 	for postPath, metadataUncasted := range postsMetadata {
 		metadata := metadataUncasted.(map[string]interface{})
 
@@ -48,8 +46,26 @@ func main() {
 		log.Println(postPath)
 		sitemap.AddPost(postPath, postMetadata)
 	}
-
 	sitemap.OrderPosts()
+}
+
+func enumerateImages(sitemap *data.Sitemap) {
+	filepath.Walk("html/images", func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			// TODO: move images out of html
+			localPath := strings.TrimPrefix(path, "html/")
+			sitemap.AddRemapping(localPath, "/"+localPath)
+		}
+		return err
+	})
+}
+
+func main() {
+	// Iterate through all md files and determine the output file.
+
+	sitemap := data.NewSitemap()
+	enumeratePosts(sitemap)
+	enumerateImages(sitemap)
 
 	util.ExportJson("sitemap.json", sitemap)
 }
