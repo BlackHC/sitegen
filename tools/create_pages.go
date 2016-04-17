@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -28,12 +29,6 @@ type PostTemplateContext struct {
 	Navigation NavigationContext
 }
 
-var postPath string
-
-func init() {
-	flag.StringVar(&postPath, "post", "posts/2007-12-02-geckos-here-and-geckos-there-geckos-everywhere.markdown", "Post name")
-}
-
 func MdToPageHtml(mdName string) string {
 	blogHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(mdName, ".markdown"), "posts/") + "_page.html"
 	return blogHtmlPath
@@ -45,6 +40,15 @@ func errPanic(err error) {
 	}
 }
 
+func createOutputFile(filepath string) (*os.File, error) {
+	dir := path.Dir(filepath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+	file, err := os.Create(filepath)
+	return file, err
+}
+
 func main() {
 	flag.Parse()
 
@@ -52,30 +56,32 @@ func main() {
 	sitemap := data.NewSitemap()
 	util.ImportJson("sitemap.json", &sitemap)
 
-	postMetadata := sitemap.Posts[postPath]
+	for postPath, postMetadata := range sitemap.Posts {
+		postContent, err := postMetadata.Content()
+		errPanic(err)
 
-	postContent, err := postMetadata.Content()
-	errPanic(err)
+		postTemplateContext := PostTemplateContext{
+			Title:   postMetadata.Title,
+			Content: postContent, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
+			Navigation: NavigationContext{NextPost: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
+				PreviousPost: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
 
-	postTemplateContext := PostTemplateContext{
-		Title:   postMetadata.Title,
-		Content: postContent, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
-		Navigation: NavigationContext{NextPost: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
-			PreviousPost: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
+		//fmt.Println(postTemplateContext)
+		// Create template from file
+		postTemplate, err := template.ParseFiles(postTemplatePath)
+		errPanic(err)
 
-	//fmt.Println(postTemplateContext)
-	// Create template from file
-	postTemplate, err := template.ParseFiles(postTemplatePath)
-	errPanic(err)
+		// Set options (missingkey)
+		postTemplate.Option("missingkey=error")
 
-	// Set options (missingkey)
-	postTemplate.Option("missingkey=error")
+		// Run the template
+		// Write output to _page.html
+		outputPath := path.Join("http", postMetadata.Url)
+		println(outputPath)
+		pageFile, err := createOutputFile(outputPath)
+		errPanic(err)
 
-	// Run the template
-	// Write output to _blog.html
-	pageFile, err := os.Create(MdToPageHtml(postPath))
-	errPanic(err)
-
-	err = postTemplate.Execute(pageFile, postTemplateContext)
-	errPanic(err)
+		err = postTemplate.Execute(pageFile, postTemplateContext)
+		errPanic(err)
+	}
 }

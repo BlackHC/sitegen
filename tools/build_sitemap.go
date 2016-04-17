@@ -39,7 +39,7 @@ func main() {
 		postDate, err := time.Parse("2006-01-02 15:04:05+00:00", postDateString)
 		errPanic(err)
 
-		postUrl := fmt.Sprintf("%04d/%02d/%s/index.html", postDate.Year(), postDate.Month(), slugString)
+		postUrl := fmt.Sprintf("/%04d/%02d/%s/index.html", postDate.Year(), postDate.Month(), slugString)
 		errPanic(err)
 
 		contentPath := mdToContentHtml(postPath)
