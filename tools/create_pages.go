@@ -3,7 +3,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -40,15 +39,6 @@ func errPanic(err error) {
 	}
 }
 
-func createOutputFile(filepath string) (*os.File, error) {
-	dir := path.Dir(filepath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
-	file, err := os.Create(filepath)
-	return file, err
-}
-
 func main() {
 	flag.Parse()
 
@@ -78,7 +68,7 @@ func main() {
 		// Write output to _page.html
 		outputPath := path.Join("http", postMetadata.Url)
 		println(outputPath)
-		pageFile, err := createOutputFile(outputPath)
+		pageFile, err := util.CreateOutputFile(outputPath)
 		errPanic(err)
 
 		err = postTemplate.Execute(pageFile, postTemplateContext)
