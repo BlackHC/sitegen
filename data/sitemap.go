@@ -7,6 +7,9 @@ import (
 	"sort"
 )
 
+const BlogTitle = "BlackHC's Adventures in the Dev World"
+const BlogSubtitle = "Just another weblog"
+
 type IndexPages []*IndexPage
 
 type IndexPage struct {

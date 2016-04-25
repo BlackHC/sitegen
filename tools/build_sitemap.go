@@ -12,9 +12,6 @@ import (
 	"github.com/blackhc.github.io/generator/util"
 )
 
-const blogTitle = "BlackHC's Adventures in the Dev World"
-const blogSubtitle = "Just another weblog"
-
 func errPanic(err error) {
 	if err != nil {
 		panic(err)
@@ -95,9 +92,9 @@ func buildIndexPages(sitemap *data.Sitemap) data.IndexPages {
 }
 
 func buildIndexPageTitle(index int) string {
-	title := blogTitle
+	title := data.BlogTitle
 	if index > 0 {
-		title = fmt.Sprintf("%s | %d", blogTitle, index)
+		title = fmt.Sprintf("%s | %d", data.BlogTitle, index)
 	}
 	return title
 }

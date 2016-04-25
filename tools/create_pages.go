@@ -27,12 +27,15 @@ type PostContext struct {
 	Title   string
 	Date    string
 	Content string
+	Url     string
 }
 
 type SiteContext struct {
-	Title      string
-	Posts      []PostContext
-	Navigation NavigationContext
+	BlogTitle    string
+	BlogSubtitle string
+	Title        string
+	Posts        []PostContext
+	Navigation   NavigationContext
 }
 
 func createPostContext(postMetadata *data.Metadata) PostContext {
@@ -40,7 +43,7 @@ func createPostContext(postMetadata *data.Metadata) PostContext {
 	errPanic(err)
 
 	return PostContext{Title: postMetadata.Title, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
-		Content: postContent}
+		Content: postContent, Url: postMetadata.Url}
 }
 
 func loadSiteTemplate() *template.Template {
@@ -67,8 +70,10 @@ func createPost(sitemap *data.Sitemap, postPath string) {
 	postMetadata := sitemap.Posts[postPath]
 
 	context := SiteContext{
-		Title: postMetadata.Title,
-		Posts: []PostContext{createPostContext(postMetadata)},
+		BlogTitle:    data.BlogTitle,
+		BlogSubtitle: data.BlogSubtitle,
+		Title:        postMetadata.Title,
+		Posts:        []PostContext{createPostContext(postMetadata)},
 		Navigation: NavigationContext{NextPageUrl: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
 			PreviousPageUrl: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
 
@@ -88,8 +93,11 @@ func createIndexPage(sitemap *data.Sitemap, index int) {
 		postContexts = append(postContexts, postContext)
 	}
 
-	context := SiteContext{Title: page.Title,
-		Posts: postContexts,
+	context := SiteContext{
+		BlogTitle:    data.BlogTitle,
+		BlogSubtitle: data.BlogSubtitle,
+		Title:        page.Title,
+		Posts:        postContexts,
 		Navigation: NavigationContext{
 			NextPageUrl:     sitemap.IndexPages.MaybeNextIndexPage(index),
 			PreviousPageUrl: sitemap.IndexPages.MaybePreviousIndexPage(index)}}
