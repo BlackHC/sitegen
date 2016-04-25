@@ -12,21 +12,30 @@ import (
 	"github.com/blackhc.github.io/generator/util"
 )
 
+const blogTitle = "BlackHC's Adventures in the Dev World"
+const blogSubtitle = "Just another weblog"
+
 func errPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// Output from pandoc
 func mdToContentHtml(path string) string {
 	contentHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(path, ".markdown"), "posts/") + "_content.html"
 	return contentHtmlPath
 }
 
+func mdToLinkedContentHtml(path string) string {
+	contentHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(path, ".markdown"), "posts/") + "_linked.html"
+	return contentHtmlPath
+}
+
 func enumeratePosts(sitemap *data.Sitemap) {
 	postsMetadata := map[string]interface{}{}
-	err := util.ImportJson("raw_posts_metadata.json", &postsMetadata)
-	errPanic(err)
+	util.ImportJson("raw_posts_metadata.json", &postsMetadata)
+
 	for postPath, metadataUncasted := range postsMetadata {
 		metadata := metadataUncasted.(map[string]interface{})
 
@@ -40,13 +49,15 @@ func enumeratePosts(sitemap *data.Sitemap) {
 		postUrl := fmt.Sprintf("/%04d/%02d/%s/index.html", postDate.Year(), postDate.Month(), slugString)
 		errPanic(err)
 
-		contentPath := mdToContentHtml(postPath)
+		pandocContentPath := mdToContentHtml(postPath)
+		linkedContentPath := mdToLinkedContentHtml(postPath)
 		postMetadata := data.Metadata{Title: title,
-			Date: data.JSONTime{postDate}, Slug: slugString, Url: postUrl, ContentPath: contentPath}
+			Date: data.JSONTime{postDate}, Slug: slugString, Url: postUrl, PandocPath: pandocContentPath, ContentPath: linkedContentPath}
 		log.Println(postPath)
 		sitemap.AddPost(postPath, postMetadata)
 	}
 	sitemap.OrderPosts()
+	sitemap.IndexPages = buildIndexPages(sitemap)
 }
 
 func enumerateImages(sitemap *data.Sitemap) {
@@ -58,6 +69,45 @@ func enumerateImages(sitemap *data.Sitemap) {
 		}
 		return err
 	})
+}
+
+// TODO move this into its own file
+func buildIndexPages(sitemap *data.Sitemap) data.IndexPages {
+	postCount := len(sitemap.OrderedPosts)
+	const postsPerPage = 10
+	pageCount := (postCount + postsPerPage - 1) / postsPerPage
+	if pageCount == 0 {
+		pageCount = 1
+	}
+	indexPages := make([]*data.IndexPage, pageCount)
+	for pageIndex := 0; pageIndex < pageCount; pageIndex++ {
+		indexPage := data.IndexPage{}
+		indexPage.Url = buildIndexPageUrl(pageIndex)
+		postStartIndex := pageIndex * postsPerPage
+		postEndIndex := postStartIndex + postsPerPage
+		if postEndIndex >= postCount {
+			postEndIndex = postCount
+		}
+		indexPage.PostPaths = sitemap.OrderedPosts[postStartIndex:postEndIndex]
+		indexPages[pageIndex] = &indexPage
+	}
+	return indexPages
+}
+
+func buildIndexPageTitle(index int) string {
+	title := blogTitle
+	if index > 0 {
+		title = fmt.Sprintf("%s | %d", blogTitle, index)
+	}
+	return title
+}
+
+func buildIndexPageUrl(index int) string {
+	if index == 0 {
+		return "/index.html"
+	} else {
+		return fmt.Sprintf("/pages/%d/index.html", index)
+	}
 }
 
 func main() {

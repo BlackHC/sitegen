@@ -33,7 +33,10 @@ type Metadata struct {
 	Url   string
 	// The question is whether to just the content here or not and have it all in this pipeline...
 	// I'd say no as it's easy to read it anyway and there is only one version in the repo that way.
+	// This is the linked content.
 	ContentPath string
+	// Raw content (unlinked)
+	PandocPath string
 }
 
 func (metadata Metadata) Content() (string, error) {

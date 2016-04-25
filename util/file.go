@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 )
@@ -14,10 +15,16 @@ func CreateOutputFile(filepath string) (*os.File, error) {
 	return file, err
 }
 
-func WriteFile(filepath string, data []byte) error {
+func ReadFile(filepath string) []byte {
+	data, err := ioutil.ReadFile(filepath)
+	errPanic(err)
+	return data
+}
+
+func WriteFile(filepath string, data []byte) {
 	file, err := CreateOutputFile(filepath)
 	if err == nil {
 		_, err = file.Write(data)
 	}
-	return err
+	errPanic(err)
 }

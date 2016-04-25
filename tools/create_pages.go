@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"path"
-	"regexp"
-	"strings"
 	"text/template"
 
 	"github.com/blackhc.github.io/generator/data"
@@ -16,51 +14,88 @@ import (
 // Create pages from content and template
 // For now read posts_metadata.json and use that for content
 // and template/post.template as template
-const postTemplatePath = "templates/post.template"
+const siteTemplatePath = "templates/site.template"
+
+var siteTemplate = loadSiteTemplate()
 
 type NavigationContext struct {
-	NextPost     *string
-	PreviousPost *string
+	NextPageUrl     *string
+	PreviousPageUrl *string
 }
 
-type PostTemplateContext struct {
+type PostContext struct {
+	Title   string
+	Date    string
+	Content string
+}
+
+type SiteContext struct {
 	Title      string
-	Content    string
-	Date       string
+	Posts      []PostContext
 	Navigation NavigationContext
 }
 
-func MdToPageHtml(mdName string) string {
-	blogHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(mdName, ".markdown"), "posts/") + "_page.html"
-	return blogHtmlPath
-}
-
-func errPanic(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func linkContent(s *data.Sitemap, postPath string, content string) string {
-	changedUrls := map[string]string{}
-
-	urlRegExp, err := regexp.Compile(`(href|src)=\"(.*?)\"`)
+func createPostContext(postMetadata *data.Metadata) PostContext {
+	postContent, err := postMetadata.Content()
 	errPanic(err)
 
-	urls := urlRegExp.FindAllStringSubmatch(content, -1)
-	for _, matches := range urls {
-		url := matches[2]
-		// TODO check relative paths using the "current" directory
-		targetUrl := s.MapUrl(url)
-		if url != targetUrl {
-			changedUrls[url] = targetUrl
-			content = strings.Replace(content, matches[0], strings.Replace(matches[0], url, targetUrl, -1), -1)
-		}
+	return PostContext{Title: postMetadata.Title, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
+		Content: postContent}
+}
+
+func loadSiteTemplate() *template.Template {
+	// Create template from file
+	siteTemplate, err := template.ParseFiles(siteTemplatePath)
+	errPanic(err)
+
+	// Set options (missingkey)
+	siteTemplate.Option("missingkey=error")
+	return siteTemplate
+}
+
+func executeSiteTemplate(outputPath string, context interface{}) {
+	pageFile, err := util.CreateOutputFile(outputPath)
+	errPanic(err)
+
+	err = siteTemplate.Execute(pageFile, context)
+	errPanic(err)
+
+	fmt.Printf("%s created\n", outputPath)
+}
+
+func createPost(sitemap *data.Sitemap, postPath string) {
+	postMetadata := sitemap.Posts[postPath]
+
+	context := SiteContext{
+		Title: postMetadata.Title,
+		Posts: []PostContext{createPostContext(postMetadata)},
+		Navigation: NavigationContext{NextPageUrl: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
+			PreviousPageUrl: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
+
+	//fmt.Println(postTemplateContext)
+
+	// Run the template
+	outputPath := path.Join("http", postMetadata.Url)
+	executeSiteTemplate(outputPath, context)
+}
+
+func createIndexPage(sitemap *data.Sitemap, index int) {
+	page := sitemap.IndexPages[index]
+
+	postContexts := make([]PostContext, 0, len(page.PostPaths))
+	for _, postPath := range page.PostPaths {
+		postContext := createPostContext(sitemap.Posts[postPath])
+		postContexts = append(postContexts, postContext)
 	}
-	// if len(changedUrls) > 0 {
-	// 	fmt.Printf("%v has been changed during linking:\n\t%+v\n\n", postPath, changedUrls)
-	// }
-	return content
+
+	context := SiteContext{Title: page.Title,
+		Posts: postContexts,
+		Navigation: NavigationContext{
+			NextPageUrl:     sitemap.IndexPages.MaybeNextIndexPage(index),
+			PreviousPageUrl: sitemap.IndexPages.MaybePreviousIndexPage(index)}}
+
+	outputPath := "http" + page.Url
+	executeSiteTemplate(outputPath, context)
 }
 
 func main() {
@@ -70,36 +105,20 @@ func main() {
 	sitemap := data.NewSitemap()
 	util.ImportJson("sitemap.json", &sitemap)
 
-	for postPath, postMetadata := range sitemap.Posts {
-		postContent, err := postMetadata.Content()
-		errPanic(err)
+	// Create a page for every post.
+	for postPath, _ := range sitemap.Posts {
+		createPost(sitemap, postPath)
+	}
 
-		linkedContent := linkContent(sitemap, postPath, postContent)
+	// Create summary pages.
+	indexPages := sitemap.IndexPages
+	for index := 0; index < len(indexPages); index++ {
+		createIndexPage(sitemap, index)
+	}
+}
 
-		postTemplateContext := PostTemplateContext{
-			Title:   postMetadata.Title,
-			Content: linkedContent, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
-			Navigation: NavigationContext{NextPost: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
-				PreviousPost: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
-
-		//fmt.Println(postTemplateContext)
-		// Create template from file
-		postTemplate, err := template.ParseFiles(postTemplatePath)
-		errPanic(err)
-
-		// Set options (missingkey)
-		postTemplate.Option("missingkey=error")
-
-		// Run the template
-		// Write output to _page.html
-		outputPath := path.Join("http", postMetadata.Url)
-
-		pageFile, err := util.CreateOutputFile(outputPath)
-		errPanic(err)
-
-		err = postTemplate.Execute(pageFile, postTemplateContext)
-		errPanic(err)
-
-		fmt.Printf("%s created\n", outputPath)
+func errPanic(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

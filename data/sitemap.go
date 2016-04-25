@@ -7,19 +7,25 @@ import (
 	"sort"
 )
 
-// Relative path to the original markdown file (used as index for everything)
-type PostPath string
+type IndexPages []*IndexPage
+
+type IndexPage struct {
+	Title     string
+	Url       string
+	PostPaths []string
+}
 
 type Sitemap struct {
 	// Ordered list of posts.
-	Posts        map[string]Metadata
+	Posts        map[string]*Metadata
 	OrderedPosts []string
+	IndexPages   IndexPages
 	// Linker will replace links to key with value
 	Remappings map[string]string
 }
 
 func (s *Sitemap) AddPost(postPath string, post Metadata) {
-	s.Posts[postPath] = post
+	s.Posts[postPath] = &post
 	s.OrderedPosts = append(s.OrderedPosts, postPath)
 }
 
@@ -28,14 +34,14 @@ func (s *Sitemap) AddRemapping(localPath string, finalUrl string) {
 }
 
 func NewSitemap() *Sitemap {
-	return &Sitemap{Posts: map[string]Metadata{}, OrderedPosts: []string{}, Remappings: map[string]string{}}
+	return &Sitemap{Posts: map[string]*Metadata{}, OrderedPosts: []string{}, Remappings: map[string]string{}}
 }
 
-func (s Sitemap) GetPostByIndex(i int) Metadata {
+func (s Sitemap) GetPostByIndex(i int) *Metadata {
 	return s.Posts[s.OrderedPosts[i]]
 }
 
-func (s Sitemap) GetIndex(postPath string) int {
+func (s *Sitemap) GetIndex(postPath string) int {
 	for i, p := range s.OrderedPosts {
 		if p == postPath {
 			return i
@@ -44,7 +50,7 @@ func (s Sitemap) GetIndex(postPath string) int {
 	panic("Post not found")
 }
 
-func (s Sitemap) NextPostPath(postPath string) *string {
+func (s *Sitemap) NextPostPath(postPath string) *string {
 	i := s.GetIndex(postPath)
 	if i+1 < len(s.OrderedPosts) {
 		return &s.OrderedPosts[i+1]
@@ -52,10 +58,26 @@ func (s Sitemap) NextPostPath(postPath string) *string {
 	return nil
 }
 
-func (s Sitemap) PrevPostPath(postPath string) *string {
+func (s *Sitemap) PrevPostPath(postPath string) *string {
 	i := s.GetIndex(postPath)
 	if i > 0 {
 		return &s.OrderedPosts[i-1]
+	}
+	return nil
+}
+
+func (info IndexPages) MaybePreviousIndexPage(index int) *string {
+	if index > 0 {
+		url := info[index-1].Url
+		return &url
+	}
+	return nil
+}
+
+func (info IndexPages) MaybeNextIndexPage(index int) *string {
+	if index+1 < len(info) {
+		url := info[index+1].Url
+		return &url
 	}
 	return nil
 }
@@ -90,7 +112,7 @@ func (s Sitemap) MapUrl(sourceUrl string) string {
 	if targetUrl, found := s.Remappings[sourceUrl]; found {
 		return targetUrl
 	}
-	if parsedUrl, err := url.Parse(sourceUrl); err != nil && !parsedUrl.IsAbs() {
+	if parsedUrl, err := url.Parse(sourceUrl); err != nil || !parsedUrl.IsAbs() {
 		fmt.Println(sourceUrl + " not found in remappings/posts!")
 	}
 	return sourceUrl
