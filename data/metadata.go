@@ -40,6 +40,7 @@ type Metadata struct {
 }
 
 func (metadata Metadata) Content() (string, error) {
+	println(metadata.ContentPath)
 	data, err := ioutil.ReadFile(metadata.ContentPath)
 	return string(data), err
 }

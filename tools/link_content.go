@@ -15,9 +15,18 @@ func errPanic(err error) {
 // Returns the filename of the linked content
 func linkPost(sitemap *data.Sitemap, postPath string) {
 	postMetadata := sitemap.Posts[postPath]
-	pandocContent := string(util.ReadFile(postMetadata.PandocPath))
-	linkedContent := action.LinkHtmlReferences(sitemap, postPath, pandocContent)
-	util.WriteFile(postMetadata.ContentPath, []byte(linkedContent))
+	linkContent(sitemap, postPath, postMetadata)
+}
+
+func linkArticle(sitemap *data.Sitemap, articlePath string) {
+	articleMetadata := sitemap.Articles[articlePath]
+	linkContent(sitemap, articlePath, articleMetadata)
+}
+
+func linkContent(sitemap *data.Sitemap, path string, metadata *data.Metadata) {
+	pandocContent := string(util.ReadFile(metadata.PandocPath))
+	linkedContent := action.LinkHtmlReferences(sitemap, path, pandocContent)
+	util.WriteFile(metadata.ContentPath, []byte(linkedContent))
 }
 
 func main() {
@@ -27,5 +36,8 @@ func main() {
 	util.ImportJson("sitemap.json", &sitemap)
 	for postPath, _ := range sitemap.Posts {
 		linkPost(sitemap, postPath)
+	}
+	for articlePath, _ := range sitemap.Articles {
+		linkArticle(sitemap, articlePath)
 	}
 }

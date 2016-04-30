@@ -29,6 +29,32 @@ func mdToLinkedContentHtml(path string) string {
 	return contentHtmlPath
 }
 
+func enumerateArticles(sitemap *data.Sitemap) {
+	articlesMetadata := map[string]interface{}{}
+	util.ImportJson("raw_pages_metadata.json", &articlesMetadata)
+
+	for articlePath, metadataUncasted := range articlesMetadata {
+		metadata := metadataUncasted.(map[string]interface{})
+
+		slugString := metadata["slug"].(string)
+		title := metadata["title"].(string)
+		postDateString := metadata["date"].(string)
+		// TODO: support title -> slug conversion for new posts
+		postDate, err := time.Parse("2006-01-02 15:04:05+00:00", postDateString)
+		errPanic(err)
+
+		articleUrl := strings.TrimSuffix(strings.TrimPrefix(articlePath, "pages/"), ".markdown") + ".html"
+		errPanic(err)
+
+		pandocContentPath := mdToContentHtml(articlePath)
+		linkedContentPath := mdToLinkedContentHtml(articlePath)
+		articleMetadata := data.Metadata{Title: title,
+			Date: data.JSONTime{postDate}, Slug: slugString, Url: articleUrl, PandocPath: pandocContentPath, ContentPath: linkedContentPath}
+		log.Println(articlePath)
+		sitemap.AddArticle(articlePath, articleMetadata)
+	}
+}
+
 func enumeratePosts(sitemap *data.Sitemap) {
 	postsMetadata := map[string]interface{}{}
 	util.ImportJson("raw_posts_metadata.json", &postsMetadata)
@@ -111,7 +137,9 @@ func main() {
 	// Iterate through all md files and determine the output file.
 
 	sitemap := data.NewSitemap()
+	util.ImportJson("article_tree.json", &sitemap.ArticleTree)
 	enumeratePosts(sitemap)
+	enumerateArticles(sitemap)
 	enumerateImages(sitemap)
 
 	util.ExportJson("sitemap.json", sitemap)

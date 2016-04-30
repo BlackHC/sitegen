@@ -6,13 +6,20 @@ import (
 	"path"
 )
 
-func CreateOutputFile(filepath string) (*os.File, error) {
+func CreateParentDirectory(filepath string) error {
 	dir := path.Dir(filepath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
+	return os.MkdirAll(dir, 0755)
+}
+
+func CreateOutputFile(filepath string) *os.File {
+	if err := CreateParentDirectory(filepath); err != nil {
+		errPanic(err)
 	}
-	file, err := os.Create(filepath)
-	return file, err
+
+	if file, err := os.Create(filepath); err != nil {
+		errPanic(err)
+	}
+	return file
 }
 
 func ReadFile(filepath string) []byte {
@@ -22,9 +29,7 @@ func ReadFile(filepath string) []byte {
 }
 
 func WriteFile(filepath string, data []byte) {
-	file, err := CreateOutputFile(filepath)
-	if err == nil {
-		_, err = file.Write(data)
-	}
+	file := CreateOutputFile(filepath)
+	_, err = file.Write(data)
 	errPanic(err)
 }

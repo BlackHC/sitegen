@@ -19,10 +19,13 @@ type IndexPage struct {
 }
 
 type Sitemap struct {
-	// Ordered list of posts.
+	// Map of PostPath to Metadata
 	Posts        map[string]*Metadata
 	OrderedPosts []string
-	IndexPages   IndexPages
+	Articles     map[string]*Metadata
+	// Tree that starts in pages/index.markdown and contains the article paths of subnodes in order.
+	ArticleTree map[string][]string
+	IndexPages  IndexPages
 	// Linker will replace links to key with value
 	Remappings map[string]string
 }
@@ -32,12 +35,22 @@ func (s *Sitemap) AddPost(postPath string, post Metadata) {
 	s.OrderedPosts = append(s.OrderedPosts, postPath)
 }
 
+func (s *Sitemap) AddArticle(articlePath string, article Metadata) {
+	s.Articles[articlePath] = &article
+}
+
 func (s *Sitemap) AddRemapping(localPath string, finalUrl string) {
 	s.Remappings[localPath] = finalUrl
 }
 
 func NewSitemap() *Sitemap {
-	return &Sitemap{Posts: map[string]*Metadata{}, OrderedPosts: []string{}, Remappings: map[string]string{}}
+	return &Sitemap{
+		Posts:        map[string]*Metadata{},
+		OrderedPosts: []string{},
+		Articles:     map[string]*Metadata{},
+		ArticleTree:  map[string][]string{},
+		Remappings:   map[string]string{},
+	}
 }
 
 func (s Sitemap) GetPostByIndex(i int) *Metadata {
@@ -111,6 +124,9 @@ func (s *Sitemap) MaybePostUrl(postPath *string) *string {
 func (s Sitemap) MapUrl(sourceUrl string) string {
 	if postMetadata, found := s.Posts[sourceUrl]; found {
 		return postMetadata.Url
+	}
+	if articleMetadata, found := s.Articles[sourceUrl]; found {
+		return articleMetadata.Url
 	}
 	if targetUrl, found := s.Remappings[sourceUrl]; found {
 		return targetUrl

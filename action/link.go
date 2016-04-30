@@ -26,6 +26,9 @@ func LinkHtmlReferences(remaper Remapper, postPath string, content string) strin
 	urls := urlRegExp.FindAllStringSubmatch(content, -1)
 	for _, matches := range urls {
 		url := matches[2]
+		if strings.HasPrefix(url, "#") {
+			continue
+		}
 		// TODO check relative paths using the "current" directory
 		targetUrl := remaper.MapUrl(url)
 		if url != targetUrl {

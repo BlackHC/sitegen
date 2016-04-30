@@ -57,13 +57,33 @@ func loadSiteTemplate() *template.Template {
 }
 
 func executeSiteTemplate(outputPath string, context interface{}) {
-	pageFile, err := util.CreateOutputFile(outputPath)
-	errPanic(err)
+	println(outputPath)
+	pageFile := util.CreateOutputFile(outputPath)
 
 	err = siteTemplate.Execute(pageFile, context)
 	errPanic(err)
 
 	fmt.Printf("%s created\n", outputPath)
+}
+
+func createArticle(sitemap *data.Sitemap, articlePath string) {
+	articleMetadata := sitemap.Articles[articlePath]
+
+	context := SiteContext{
+		BlogTitle:    data.BlogTitle,
+		BlogSubtitle: data.BlogSubtitle,
+		Title:        articleMetadata.Title,
+		Posts:        []PostContext{createPostContext(articleMetadata)},
+		Navigation: NavigationContext{NextPageUrl: nil,
+			PreviousPageUrl: nil}}
+
+	// TODO: add navigation!!
+
+	//fmt.Println(postTemplateContext)
+
+	// Run the template
+	outputPath := path.Join("http", articleMetadata.Url)
+	executeSiteTemplate(outputPath, context)
 }
 
 func createPost(sitemap *data.Sitemap, postPath string) {
@@ -116,6 +136,11 @@ func main() {
 	// Create a page for every post.
 	for postPath, _ := range sitemap.Posts {
 		createPost(sitemap, postPath)
+	}
+
+	// Create a page for every article.
+	for articlePath, _ := range sitemap.Articles {
+		createArticle(sitemap, articlePath)
 	}
 
 	// Create summary pages.
