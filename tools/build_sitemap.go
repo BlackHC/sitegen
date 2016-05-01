@@ -105,6 +105,7 @@ func buildIndexPages(sitemap *data.Sitemap) data.IndexPages {
 	indexPages := make([]*data.IndexPage, pageCount)
 	for pageIndex := 0; pageIndex < pageCount; pageIndex++ {
 		indexPage := data.IndexPage{}
+		indexPage.Title = buildIndexPageTitle(pageIndex)
 		indexPage.Url = buildIndexPageUrl(pageIndex)
 		postStartIndex := pageIndex * postsPerPage
 		postEndIndex := postStartIndex + postsPerPage
