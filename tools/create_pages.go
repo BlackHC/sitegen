@@ -24,10 +24,12 @@ type NavigationContext struct {
 }
 
 type PostContext struct {
-	Title   string
-	Date    string
-	Content string
-	Url     string
+	Title         string
+	Date          string
+	Content       string
+	Url           string
+	DisqusId      string
+	DisqusPageUrl string
 }
 
 type SiteContext struct {
@@ -73,12 +75,30 @@ func (siteContext SiteContext) ResolveUrl(entryPath string) string {
 	return siteContext.sitemap.MapUrl(entryPath)
 }
 
+func (siteContext SiteContext) DisqusId() *string {
+	if len(siteContext.Posts) == 1 {
+		return &siteContext.Posts[0].DisqusId
+	}
+	return nil
+}
+
+func (siteContext SiteContext) DisqusPageUrl() *string {
+	if len(siteContext.Posts) == 1 {
+		return &siteContext.Posts[0].DisqusPageUrl
+	}
+	return nil
+}
+
 func createPostContext(postMetadata *data.Metadata) PostContext {
 	postContent, err := postMetadata.Content()
 	errPanic(err)
 
-	return PostContext{Title: postMetadata.Title, Date: postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
-		Content: postContent, Url: postMetadata.Url}
+	return PostContext{Title: postMetadata.Title,
+		Date:          postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
+		Content:       postContent,
+		Url:           postMetadata.Url,
+		DisqusId:      postMetadata.DisqusId,
+		DisqusPageUrl: postMetadata.DisqusPageUrl}
 }
 
 func loadSiteTemplate() *template.Template {
