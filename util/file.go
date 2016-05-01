@@ -16,7 +16,8 @@ func CreateOutputFile(filepath string) *os.File {
 		errPanic(err)
 	}
 
-	if file, err := os.Create(filepath); err != nil {
+	file, err := os.Create(filepath)
+	if err != nil {
 		errPanic(err)
 	}
 	return file
@@ -30,6 +31,6 @@ func ReadFile(filepath string) []byte {
 
 func WriteFile(filepath string, data []byte) {
 	file := CreateOutputFile(filepath)
-	_, err = file.Write(data)
+	_, err := file.Write(data)
 	errPanic(err)
 }

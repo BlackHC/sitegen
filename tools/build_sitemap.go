@@ -43,7 +43,7 @@ func enumerateArticles(sitemap *data.Sitemap) {
 		postDate, err := time.Parse("2006-01-02 15:04:05+00:00", postDateString)
 		errPanic(err)
 
-		articleUrl := strings.TrimSuffix(strings.TrimPrefix(articlePath, "pages/"), ".markdown") + ".html"
+		articleUrl := strings.TrimSuffix(strings.TrimPrefix(articlePath, "pages"), ".markdown") + ".html"
 		errPanic(err)
 
 		pandocContentPath := mdToContentHtml(articlePath)

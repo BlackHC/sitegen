@@ -31,11 +31,46 @@ type PostContext struct {
 }
 
 type SiteContext struct {
-	BlogTitle    string
-	BlogSubtitle string
-	Title        string
-	Posts        []PostContext
-	Navigation   NavigationContext
+	Title       string
+	Posts       []PostContext
+	Navigation  NavigationContext
+	ArticleTree map[string][]string
+	sitemap     *data.Sitemap
+}
+
+type ArticleNavContext struct {
+	sitemap     *data.Sitemap
+	articlePath string
+}
+
+func (articleNavContext ArticleNavContext) Title() string {
+	return articleNavContext.sitemap.Metadata[articleNavContext.articlePath].Title
+}
+
+func (articleNavContext ArticleNavContext) Url() string {
+	return articleNavContext.sitemap.Metadata[articleNavContext.articlePath].Url
+}
+
+func (articleNavContext ArticleNavContext) Children() []ArticleNavContext {
+	childNodes := articleNavContext.sitemap.ArticleTree[articleNavContext.articlePath]
+	children := make([]ArticleNavContext, len(childNodes))
+	for i, subArticlePath := range childNodes {
+		children[i] = ArticleNavContext{sitemap: articleNavContext.sitemap, articlePath: subArticlePath}
+	}
+	return children
+}
+
+func (siteContext SiteContext) BlogTitle() string { return data.BlogTitle }
+
+func (siteContext SiteContext) BlogSubtitle() string { return data.BlogSubtitle }
+
+func (siteContext SiteContext) GetRootArticles() []ArticleNavContext {
+	rootArticle := ArticleNavContext{sitemap: siteContext.sitemap, articlePath: data.RootArticlePath}
+	return rootArticle.Children()
+}
+
+func (siteContext SiteContext) ResolveUrl(entryPath string) string {
+	return siteContext.sitemap.MapUrl(entryPath)
 }
 
 func createPostContext(postMetadata *data.Metadata) PostContext {
@@ -57,25 +92,24 @@ func loadSiteTemplate() *template.Template {
 }
 
 func executeSiteTemplate(outputPath string, context interface{}) {
-	println(outputPath)
 	pageFile := util.CreateOutputFile(outputPath)
 
-	err = siteTemplate.Execute(pageFile, context)
+	err := siteTemplate.Execute(pageFile, context)
 	errPanic(err)
 
 	fmt.Printf("%s created\n", outputPath)
 }
 
 func createArticle(sitemap *data.Sitemap, articlePath string) {
-	articleMetadata := sitemap.Articles[articlePath]
+	articleMetadata := sitemap.Metadata[articlePath]
 
 	context := SiteContext{
-		BlogTitle:    data.BlogTitle,
-		BlogSubtitle: data.BlogSubtitle,
-		Title:        articleMetadata.Title,
-		Posts:        []PostContext{createPostContext(articleMetadata)},
+		Title:       articleMetadata.Title,
+		Posts:       []PostContext{createPostContext(articleMetadata)},
+		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{NextPageUrl: nil,
-			PreviousPageUrl: nil}}
+			PreviousPageUrl: nil},
+		sitemap: sitemap}
 
 	// TODO: add navigation!!
 
@@ -87,15 +121,15 @@ func createArticle(sitemap *data.Sitemap, articlePath string) {
 }
 
 func createPost(sitemap *data.Sitemap, postPath string) {
-	postMetadata := sitemap.Posts[postPath]
+	postMetadata := sitemap.Metadata[postPath]
 
 	context := SiteContext{
-		BlogTitle:    data.BlogTitle,
-		BlogSubtitle: data.BlogSubtitle,
-		Title:        postMetadata.Title,
-		Posts:        []PostContext{createPostContext(postMetadata)},
+		Title:       postMetadata.Title,
+		Posts:       []PostContext{createPostContext(postMetadata)},
+		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{NextPageUrl: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
-			PreviousPageUrl: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))}}
+			PreviousPageUrl: sitemap.MaybePostUrl(sitemap.PrevPostPath(postPath))},
+		sitemap: sitemap}
 
 	//fmt.Println(postTemplateContext)
 
@@ -109,21 +143,29 @@ func createIndexPage(sitemap *data.Sitemap, index int) {
 
 	postContexts := make([]PostContext, 0, len(page.PostPaths))
 	for _, postPath := range page.PostPaths {
-		postContext := createPostContext(sitemap.Posts[postPath])
+		postContext := createPostContext(sitemap.Metadata[postPath])
 		postContexts = append(postContexts, postContext)
 	}
 
 	context := SiteContext{
-		BlogTitle:    data.BlogTitle,
-		BlogSubtitle: data.BlogSubtitle,
-		Title:        page.Title,
-		Posts:        postContexts,
+		Title:       page.Title,
+		Posts:       postContexts,
+		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{
 			NextPageUrl:     sitemap.IndexPages.MaybeNextIndexPage(index),
-			PreviousPageUrl: sitemap.IndexPages.MaybePreviousIndexPage(index)}}
+			PreviousPageUrl: sitemap.IndexPages.MaybePreviousIndexPage(index)},
+		sitemap: sitemap}
 
 	outputPath := "http" + page.Url
 	executeSiteTemplate(outputPath, context)
+}
+
+func createSubArticles(sitemap *data.Sitemap, articlePath string) {
+	for _, subArticlePath := range sitemap.ArticleTree[articlePath] {
+		println(subArticlePath)
+		createArticle(sitemap, subArticlePath)
+		createSubArticles(sitemap, subArticlePath)
+	}
 }
 
 func main() {
@@ -134,14 +176,12 @@ func main() {
 	util.ImportJson("sitemap.json", &sitemap)
 
 	// Create a page for every post.
-	for postPath, _ := range sitemap.Posts {
+	for _, postPath := range sitemap.OrderedPosts {
 		createPost(sitemap, postPath)
 	}
 
 	// Create a page for every article.
-	for articlePath, _ := range sitemap.Articles {
-		createArticle(sitemap, articlePath)
-	}
+	createSubArticles(sitemap, data.RootArticlePath)
 
 	// Create summary pages.
 	indexPages := sitemap.IndexPages

@@ -12,17 +12,6 @@ func errPanic(err error) {
 	}
 }
 
-// Returns the filename of the linked content
-func linkPost(sitemap *data.Sitemap, postPath string) {
-	postMetadata := sitemap.Posts[postPath]
-	linkContent(sitemap, postPath, postMetadata)
-}
-
-func linkArticle(sitemap *data.Sitemap, articlePath string) {
-	articleMetadata := sitemap.Articles[articlePath]
-	linkContent(sitemap, articlePath, articleMetadata)
-}
-
 func linkContent(sitemap *data.Sitemap, path string, metadata *data.Metadata) {
 	pandocContent := string(util.ReadFile(metadata.PandocPath))
 	linkedContent := action.LinkHtmlReferences(sitemap, path, pandocContent)
@@ -30,14 +19,9 @@ func linkContent(sitemap *data.Sitemap, path string, metadata *data.Metadata) {
 }
 
 func main() {
-	// Iterate through all md files and determine the output file.
-
 	sitemap := data.NewSitemap()
 	util.ImportJson("sitemap.json", &sitemap)
-	for postPath, _ := range sitemap.Posts {
-		linkPost(sitemap, postPath)
-	}
-	for articlePath, _ := range sitemap.Articles {
-		linkArticle(sitemap, articlePath)
+	for path, metadata := range sitemap.Metadata {
+		linkContent(sitemap, path, metadata)
 	}
 }
