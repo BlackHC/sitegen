@@ -13,8 +13,8 @@ import (
 
 const basePath string = "html/"
 
-func main() {
-	err := filepath.Walk("pages", func(path string, info os.FileInfo, err error) error {
+func ConvertDirectory(directory string) error {
+	return filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() && strings.HasSuffix(path, ".markdown") {
 			log.Println(path)
 			standaloneOutputPath := basePath + strings.TrimSuffix(path, ".markdown") + ".html"
@@ -36,6 +36,15 @@ func main() {
 		}
 		return err
 	})
+}
+
+func main() {
+	err := ConvertDirectory("pages")
+	if err != nil {
+		panic(err)
+	}
+	// TODO: this is broken atm. atm all the converted posts are in html/*
+	err = ConvertDirectory("posts")
 	if err != nil {
 		panic(err)
 	}

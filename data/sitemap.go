@@ -82,7 +82,7 @@ func (a ByDate) Swap(i, j int) {
 	a.OrderedPosts[i], a.OrderedPosts[j] = a.OrderedPosts[j], a.OrderedPosts[i]
 }
 func (a ByDate) Less(i, j int) bool {
-	return Sitemap(a).GetPostByIndex(i).Date.Before(Sitemap(a).GetPostByIndex(j).Date.Time)
+	return Sitemap(a).GetPostByIndex(i).Date.After(Sitemap(a).GetPostByIndex(j).Date.Time)
 }
 
 func (s Sitemap) OrderPosts() {
