@@ -43,7 +43,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// TODO: this is broken atm. atm all the converted posts are in html/*
 	err = ConvertDirectory("posts")
 	if err != nil {
 		panic(err)

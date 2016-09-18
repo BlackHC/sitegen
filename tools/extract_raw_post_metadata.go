@@ -34,7 +34,9 @@ func main() {
 
 	for _, post := range posts {
 		postFilename := "posts/" + post.Name()
-		postMetadata[postFilename] = extractMetadata(postFilename)
+		if strings.HasSuffix(postFilename, ".markdown") {
+			postMetadata[postFilename] = extractMetadata(postFilename)
+		}
 	}
 
 	util.ExportJson("raw_posts_metadata.json", postMetadata)

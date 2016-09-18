@@ -20,12 +20,12 @@ func errPanic(err error) {
 
 // Output from pandoc
 func mdToContentHtml(path string) string {
-	contentHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(path, ".markdown"), "posts/") + "_content.html"
+	contentHtmlPath := "html/" + strings.TrimSuffix(path, ".markdown") + "_content.html"
 	return contentHtmlPath
 }
 
 func mdToLinkedContentHtml(path string) string {
-	contentHtmlPath := "html/" + strings.TrimPrefix(strings.TrimSuffix(path, ".markdown"), "posts/") + "_linked.html"
+	contentHtmlPath := "html/" + strings.TrimSuffix(path, ".markdown") + "_linked.html"
 	return contentHtmlPath
 }
 
@@ -61,7 +61,7 @@ func enumerateArticles(sitemap *data.Sitemap) {
 		postDate, err := time.Parse("2006-01-02 15:04:05+00:00", postDateString)
 		errPanic(err)
 
-		articleUrl := strings.TrimSuffix(strings.TrimPrefix(articlePath, "pages"), ".markdown") + ".html"
+		articleUrl := strings.TrimPrefix(strings.TrimSuffix(articlePath, ".markdown"), "pages") + ".html"
 		errPanic(err)
 
 		layout := metadata["layout"].(string)

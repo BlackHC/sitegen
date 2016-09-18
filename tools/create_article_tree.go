@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/blackhc.github.io/generator/data"
 	"github.com/blackhc.github.io/generator/util"
 )
 
@@ -27,7 +28,7 @@ func main() {
 }
 
 func (articleTree *ArticleTree) registerWithParent(nodePath string) {
-	if nodePath == RootArticlePath {
+	if nodePath == data.RootArticlePath {
 		return
 	}
 
