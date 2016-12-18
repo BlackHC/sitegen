@@ -7,8 +7,8 @@ import (
 	"sort"
 )
 
-const BlogTitle = "BlackHC's Adventures in the Dev World"
-const BlogSubtitle = "Just another weblog"
+const BlogTitle = "BlackHC's Adventures"
+const BlogSubtitle = "... in the Dev World"
 
 const RootArticlePath = "pages/index.markdown"
 

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"path"
+	"strconv"
 	"text/template"
 
 	"github.com/blackhc.github.io/generator/data"
@@ -43,6 +44,7 @@ type SiteContext struct {
 type ArticleNavContext struct {
 	sitemap     *data.Sitemap
 	articlePath string
+	Id          string
 }
 
 func (articleNavContext ArticleNavContext) Title() string {
@@ -57,7 +59,11 @@ func (articleNavContext ArticleNavContext) Children() []ArticleNavContext {
 	childNodes := articleNavContext.sitemap.ArticleTree[articleNavContext.articlePath]
 	children := make([]ArticleNavContext, len(childNodes))
 	for i, subArticlePath := range childNodes {
-		children[i] = ArticleNavContext{sitemap: articleNavContext.sitemap, articlePath: subArticlePath}
+		children[i] = ArticleNavContext{
+			sitemap:     articleNavContext.sitemap,
+			articlePath: subArticlePath,
+			Id:          articleNavContext.Id + "-" + strconv.Itoa(i),
+		}
 	}
 	return children
 }
@@ -67,7 +73,11 @@ func (siteContext SiteContext) BlogTitle() string { return data.BlogTitle }
 func (siteContext SiteContext) BlogSubtitle() string { return data.BlogSubtitle }
 
 func (siteContext SiteContext) GetRootArticles() []ArticleNavContext {
-	rootArticle := ArticleNavContext{sitemap: siteContext.sitemap, articlePath: data.RootArticlePath}
+	rootArticle := ArticleNavContext{
+		sitemap:     siteContext.sitemap,
+		articlePath: data.RootArticlePath,
+		Id:          "submenu",
+	}
 	return rootArticle.Children()
 }
 
@@ -130,8 +140,6 @@ func createArticle(sitemap *data.Sitemap, articlePath string) {
 		Navigation: NavigationContext{NextPageUrl: nil,
 			PreviousPageUrl: nil},
 		sitemap: sitemap}
-
-	// TODO: add navigation!!
 
 	//fmt.Println(postTemplateContext)
 
