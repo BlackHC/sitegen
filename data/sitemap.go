@@ -8,7 +8,7 @@ import (
 )
 
 const BlogTitle = "BlackHC's Adventures"
-const BlogSubtitle = "... in the Dev World"
+const BlogSubtitle = "in the Dev World"
 
 const RootArticlePath = "pages/index.markdown"
 
