@@ -35,6 +35,8 @@ type PostContext struct {
 
 type SiteContext struct {
 	Title       string
+	Url         string
+	Date        string
 	Posts       []PostContext
 	Navigation  NavigationContext
 	ArticleTree map[string][]string
@@ -68,9 +70,17 @@ func (articleNavContext ArticleNavContext) Children() []ArticleNavContext {
 	return children
 }
 
-func (siteContext SiteContext) BlogTitle() string { return data.BlogTitle }
+func (siteContext SiteContext) BlogTitle() string {
+	return data.BlogTitle
+}
 
-func (siteContext SiteContext) BlogSubtitle() string { return data.BlogSubtitle }
+func (siteContext SiteContext) BlogSubtitle() string {
+	return data.BlogSubtitle
+}
+
+func (siteContext SiteContext) BlogDomainUrl() string {
+	return data.BlogDomainUrl
+}
 
 func (siteContext SiteContext) GetRootArticles() []ArticleNavContext {
 	rootArticle := ArticleNavContext{
@@ -99,12 +109,16 @@ func (siteContext SiteContext) DisqusPageUrl() *string {
 	return nil
 }
 
+func formatDate(date data.JSONTime) string {
+	return date.Format("Mon Jan _2 2006 15:04:05")
+}
+
 func createPostContext(postMetadata *data.Metadata) PostContext {
 	postContent, err := postMetadata.Content()
 	errPanic(err)
 
 	return PostContext{Title: postMetadata.Title,
-		Date:          postMetadata.Date.Format("Mon Jan _2 2006 15:04:05"),
+		Date:          formatDate(postMetadata.Date),
 		Content:       postContent,
 		Url:           postMetadata.Url,
 		DisqusId:      postMetadata.DisqusId,
@@ -135,6 +149,8 @@ func createArticle(sitemap *data.Sitemap, articlePath string) {
 
 	context := SiteContext{
 		Title:       articleMetadata.Title,
+		Url:         articleMetadata.Url,
+		Date:        formatDate(articleMetadata.Date),
 		Posts:       []PostContext{createPostContext(articleMetadata)},
 		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{NextPageUrl: nil,
@@ -153,6 +169,8 @@ func createPost(sitemap *data.Sitemap, postPath string) {
 
 	context := SiteContext{
 		Title:       postMetadata.Title,
+		Url:         postMetadata.Url,
+		Date:        formatDate(postMetadata.Date),
 		Posts:       []PostContext{createPostContext(postMetadata)},
 		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{NextPageUrl: sitemap.MaybePostUrl(sitemap.NextPostPath(postPath)),
@@ -177,6 +195,8 @@ func createIndexPage(sitemap *data.Sitemap, index int) {
 
 	context := SiteContext{
 		Title:       page.Title,
+		Url:         page.Url,
+		Date:        "",
 		Posts:       postContexts,
 		ArticleTree: sitemap.ArticleTree,
 		Navigation: NavigationContext{

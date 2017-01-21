@@ -9,6 +9,7 @@ import (
 
 const BlogTitle = "BlackHC's Adventures"
 const BlogSubtitle = "in the Dev World"
+const BlogDomainUrl = "http://blog.blackhc.net"
 
 const RootArticlePath = "pages/index.markdown"
 

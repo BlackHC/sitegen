@@ -161,7 +161,7 @@ func buildIndexPages(sitemap *data.Sitemap) data.IndexPages {
 func buildIndexPageTitle(index int) string {
 	title := data.BlogTitle
 	if index > 0 {
-		title = fmt.Sprintf("%s | %d", data.BlogTitle, index)
+		title = fmt.Sprintf("%s %s | %d", data.BlogTitle, data.BlogSubtitle, index)
 	}
 	return title
 }

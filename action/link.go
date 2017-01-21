@@ -20,7 +20,7 @@ type Remapper interface {
 func LinkHtmlReferences(remaper Remapper, postPath string, content string) string {
 	changedUrls := map[string]string{}
 
-	urlRegExp, err := regexp.Compile(`(href|src)=\"(.*?)\"`)
+	urlRegExp, err := regexp.Compile(`(href|src)="(.*?)"`)
 	errPanic(err)
 
 	urls := urlRegExp.FindAllStringSubmatch(content, -1)
